@@ -1,0 +1,6 @@
+{
+  "name": "Class Portal",
+  "description": "A portal for BCT students featuring profiles, HTML/CSS showcases, events management, and a ranked project explore feed.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
