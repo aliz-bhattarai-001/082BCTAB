@@ -54,6 +54,12 @@ npm run preview
 
 To ensure everything works fine and nothing breaks from your changes.
 
+### Documenting your changes:
+
+Properly clarify your changes in the `docs/CHANGELOG.md` following the same syntax as that used in the first log.
+This is crucial for letting us have a simple view of where and what changes were made in a more broarder view.
+(PS: You could technically write this and have the same in your pull Request as well: or keep a reference to that changelog.)
+
 ---
 
 ## 3. Pull Request Guidelines
