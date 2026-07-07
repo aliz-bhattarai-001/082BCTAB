@@ -6,11 +6,15 @@ To maintain the integrity of our project and ensure we grow together as a academ
 
 ---
 
+
 ## 1. Eligibility Requirements
 
-*   **Batch Restriction:** You **must** be a member of the batch **082BCT "AB" (Pulchowk Campus, IOE)**.
- > **Note:** Anyone outside this batch is requested not to participate in the contributions, as doing so would hamper our goal of growing together as a team.
-    `Let us fix the mistakes we make and learn from them.`
+This project is primarily intended for the students of **082 BCT "AB" (Pulchowk Campus, IOE)** and serves as a collaborative platform for our class.
+
+- **Batch Members:** Students of **082 BCT "AB"** are welcome to contribute to all aspects of the project, subject to the contribution guidelines.
+- **External Contributors:** Contributions that improve the project's general infrastructure—such as UI/UX, documentation, performance, bug fixes, developer tooling, and other non-security-related improvements—are welcome. However, contributions involving batch-specific content, resources, authentication, Firestore Security Rules, or other security-critical components are reserved for the project maintainers and members of **082 BCT "AB"**.
+
+> **Note:** These restrictions exist to preserve the project's purpose as a class resource while still encouraging meaningful improvements from the wider developer community.
 
 ---
 
