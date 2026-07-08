@@ -11,7 +11,9 @@ interface ProfilesViewProps {
   currentUserRole: UserRole;
   onRefreshProfile: () => void;
 }
-
+function slugify(name: string) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 export default function ProfilesView({
   currentUserUid,
   currentUserProfile,
@@ -24,10 +26,8 @@ export default function ProfilesView({
   const [loading, setLoading] = useState(true);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
 
-  // Layout Controls
   const [viewMode, setViewMode] = useState<"clan" | "my-profile">("clan");
 
-  // Profile Edit fields
   const [editName, setEditName] = useState("");
   const [editRoll, setEditRoll] = useState("");
   const [editBatch, setEditBatch] = useState("");
@@ -37,27 +37,96 @@ export default function ProfilesView({
   const [editWebsite, setEditWebsite] = useState("");
   const [editPhotoURL, setEditPhotoURL] = useState("");
 
-  // Project Configuration Modal
   const [addingProj, setAddingProj] = useState(false);
   const [newProjTitle, setNewProjTitle] = useState("");
   const [newProjDesc, setNewProjDesc] = useState("");
   const [newProjTags, setNewProjTags] = useState("");
   const [newProjDate, setNewProjDate] = useState("");
-  const [newProjGithub, setNewProjGithub] = useState(""); 
-  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]); // Array of user UIDs
+  const [newProjGithub, setNewProjGithub] = useState("");
+  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
 
-  // Preview Workspace Toggle
   const [projectEditorTab, setProjectEditorTab] = useState<"edit" | "preview">("edit");
 
-  // Core Sandbox States
   const [activeSandbox, setActiveSandbox] = useState<{ uid: string; name: string } | null>(null);
   const [fullscreenWebsite, setFullscreenWebsite] = useState<{ uid: string; name: string } | null>(null);
-  const [htmlCode, setHtmlCode] = useState<string>("<h1>Welcome to my space!</h1>\n<p>Edit this HTML/CSS layout.</p>");
-  const [cssCode, setCssCode] = useState<string>("body {\n  font-family: sans-serif;\n  color: #333;\n  padding: 20px;\n}");
+  const [htmlCode, setHtmlCode] = useState<string>("");
+  const [cssCode, setCssCode] = useState<string>("");
   const [isSavingSandbox, setIsSavingSandbox] = useState(false);
 
-  // Modals
   const [chatTarget, setChatTarget] = useState<{ uid: string; name: string } | null>(null);
+
+  const getDefaultHtml = (name: string, roll: string, batch: string) => `
+<div class="hero">
+  <div class="badge">Pulchowk Campus · BCT</div>
+  <h1>${name}</h1>
+  <p class="sub">${batch ? batch + " Batch" : "Bachelor of Computer Engineering"} ${roll ? "· Roll " + roll : ""}</p>
+  <p class="desc">Student at IOE Pulchowk Campus, Department of Electronics and Computer Engineering.</p>
+  <div class="links">
+    <a href="#" class="btn">GitHub</a>
+    <a href="#" class="btn">LinkedIn</a>
+  </div>
+</div>`;
+
+  const getDefaultCss = () => `
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f0f0f;
+  color: #f0f0f0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero {
+  text-align: center;
+  padding: 60px 40px;
+  max-width: 600px;
+}
+.badge {
+  display: inline-block;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #888;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+h1 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #fff 0%, #888 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+}
+.desc {
+  font-size: 15px;
+  color: #999;
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+.links { display: flex; gap: 12px; justify-content: center; }
+.btn {
+  padding: 10px 28px;
+  border: 1px solid #333;
+  color: #ccc;
+  text-decoration: none;
+  font-size: 13px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.btn:hover { background: #1a1a1a; border-color: #555; color: #fff; }`;
 
   const loadProfiles = async () => {
     try {
@@ -106,7 +175,6 @@ export default function ProfilesView({
     }
   }, [currentUserUid, currentUserProfile]);
 
-  // Toggle collaborator selection
   const handleToggleCollaborator = (uid: string) => {
     setSelectedCollaborators((prev) =>
       prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
@@ -116,55 +184,41 @@ export default function ProfilesView({
   const injectSyntax = (type: "heading" | "bold" | "list" | "table" | "rule" | "link" | "image") => {
     const textarea = document.getElementById("projectRichEditor") as HTMLTextAreaElement;
     if (!textarea) return;
-
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selection = newProjDesc.substring(start, end);
     let result = "";
-
     switch (type) {
-      case "heading":
-        result = `## ${selection || "Heading Title"}\n`;
-        break;
-      case "bold":
-        result = `**${selection || "Strong Text"}**`;
-        break;
-      case "list":
-        result = `\n* ${selection || "Feature Point"}\n* Item 2\n`;
-        break;
-      case "table":
-        result = `\n| Phase | System Target |\n| :--- | :--- |\n| 01 | ${selection || "Core Configuration"} |\n`;
-        break;
-      case "rule":
-        result = `\n---\n`;
-        break;
-      case "link":
-        result = `[${selection || "Resource Text"}](https://github.com/)`;
-        break;
-      case "image":
-        result = `![${selection || "Image Label"}](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe)`;
-        break;
+      case "heading": result = `## ${selection || "Heading Title"}\n`; break;
+      case "bold": result = `**${selection || "Strong Text"}**`; break;
+      case "list": result = `\n* ${selection || "Feature Point"}\n* Item 2\n`; break;
+      case "table": result = `\n| Phase | System Target |\n| :--- | :--- |\n| 01 | ${selection || "Core Configuration"} |\n`; break;
+      case "rule": result = `\n---\n`; break;
+      case "link": result = `[${selection || "Resource Text"}](https://github.com/)`; break;
+      case "image": result = `![${selection || "Image Label"}](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe)`; break;
     }
-
     const output = newProjDesc.substring(0, start) + result + newProjDesc.substring(end);
     setNewProjDesc(output);
-
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + result.length, start + result.length);
     }, 50);
   };
 
-  const handleOpenShowcase = async (uid: string, name: string, openAsOwner: boolean) => {
+  const handleOpenShowcase = async (uid: string, name: string, openAsOwner: boolean, profile?: UserProfile) => {
     try {
       const showcaseDoc = await getDoc(doc(db, "showcases", uid));
-      let currentHtml = "<h1>Welcome to my space!</h1>\n<p>This space is waiting for content creation.</p>";
-      let currentCss = "body {\n  font-family: sans-serif;\n  padding: 20px;\n  background: #fafafa;\n}";
+      let currentHtml = getDefaultHtml(
+        profile?.name || name,
+        profile?.rollNumber || "",
+        profile?.batchYear || ""
+      );
+      let currentCss = getDefaultCss();
 
       if (showcaseDoc.exists()) {
         const data = showcaseDoc.data();
-        currentHtml = data.html || "<h1>Welcome to my space!</h1>";
-        currentCss = data.css || "body { font-family: sans-serif; }";
+        currentHtml = data.html || currentHtml;
+        currentCss = data.css || currentCss;
       }
 
       setHtmlCode(currentHtml);
@@ -179,6 +233,10 @@ export default function ProfilesView({
       console.error("Error getting showcase source data:", err);
     }
   };
+
+const handleVisitWebsite = (profile: UserProfile) => {
+  window.open(`/${slugify(profile.name)}`, "_blank");
+};
 
   const handleSaveShowcase = async () => {
     if (!activeSandbox) return;
@@ -202,7 +260,6 @@ export default function ProfilesView({
     try {
       const userRef = doc(db, "users", currentUserUid);
       const skillsArray = editSkills.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
-
       const updatedProfile = {
         uid: currentUserUid,
         name: editName.trim(),
@@ -217,7 +274,6 @@ export default function ProfilesView({
           website: editWebsite.trim(),
         },
       };
-
       await setDoc(userRef, updatedProfile, { merge: true });
       onRefreshProfile();
       loadProfiles();
@@ -230,13 +286,10 @@ export default function ProfilesView({
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjTitle.trim() || !newProjDesc.trim()) return;
-
     try {
       const projId = `proj_${Date.now()}`;
       const tagsArray = newProjTags.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0);
-
-      const projectRef = doc(db, "projects", projId);
-      await setDoc(projectRef, {
+      await setDoc(doc(db, "projects", projId), {
         ownerUid: currentUserUid,
         ownerName: currentUserProfile?.name || "Clan Member",
         ownerEmail: currentUserProfile?.email || "",
@@ -245,18 +298,12 @@ export default function ProfilesView({
         tags: tagsArray,
         date: newProjDate || new Date().toISOString().split("T")[0],
         githubLink: newProjGithub.trim(),
-        collaborators: selectedCollaborators, 
+        collaborators: selectedCollaborators,
         stars: 0,
         starredBy: [],
         createdAt: new Date(),
       });
-
-      setNewProjTitle("");
-      setNewProjDesc("");
-      setNewProjTags("");
-      setNewProjDate("");
-      setNewProjGithub("");
-      setSelectedCollaborators([]);
+      setNewProjTitle(""); setNewProjDesc(""); setNewProjTags(""); setNewProjDate(""); setNewProjGithub(""); setSelectedCollaborators([]);
       setAddingProj(false);
       loadProfiles();
     } catch (err) {
@@ -296,24 +343,20 @@ export default function ProfilesView({
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-6 font-serif text-[#111111] animate-fade-in">
-      
-      {/* IMMERSIVE IFRAME FULLSCREEN DOMAIN SIMULATOR */}
+
       {fullscreenWebsite && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col font-sans">
           <div className="bg-neutral-900 text-white px-6 py-3 flex items-center justify-between shadow-lg">
             <p className="text-xs font-mono text-neutral-300">EXPLORING ACTIVE HUB NODE: <span className="text-white font-bold">{fullscreenWebsite.name.toUpperCase()}</span></p>
             <button onClick={() => setFullscreenWebsite(null)} className="bg-neutral-800 hover:bg-neutral-700 text-white p-1.5 rounded flex items-center gap-1 text-xs uppercase font-bold"><X className="w-4 h-4" /> Exit Site</button>
           </div>
-          <iframe title="Immersive Website Portal" srcDoc={getCombinedSrcDoc()} sandbox="allow-scripts" className="w-full flex-1 border-none bg-white" />
+          <iframe title="Immersive Website Portal" srcDoc={getCombinedSrcDoc()} sandbox="allow-scripts allow-top-navigation allow-same-origin" className="w-full flex-1 border-none bg-white" />
         </div>
       )}
 
-      {/* OVERHAULED POPUP MODAL: EXTENDED WORKSPACE COMPONENT PANEL WITH COLLABORATOR ATTACHMENT REGISTER */}
       {addingProj && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-fade-in">
           <div className="bg-white border border-[#111111] w-full max-w-5xl shadow-2xl relative flex flex-col max-h-[90vh] rounded-[3px] overflow-hidden animate-scale-up">
-            
-            {/* Modal Navigation Header */}
             <div className="flex items-center justify-between bg-[#111111] text-white px-6 py-4 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4 text-amber-400" />
@@ -327,17 +370,12 @@ export default function ProfilesView({
                 <button onClick={() => setAddingProj(false)} className="text-neutral-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
               </div>
             </div>
-            
-            {/* Workspace Main Form Body Splitter */}
             <form onSubmit={handleAddProject} className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white">
-              
-              {/* Left Side Inputs Column (Spans 2 for spacious text workspace setup) */}
               <div className="lg:col-span-2 space-y-4">
                 <div>
                   <label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Project Title Name</label>
                   <input type="text" required value={newProjTitle} onChange={(e) => setNewProjTitle(e.target.value)} className="w-full p-2.5 border border-[#E5E5E5] focus:border-[#111111] text-xs outline-none bg-[#FBFBFB]" placeholder="e.g., Cryptographic Node Relayer Interface" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">GitHub Code Repository Link</label>
@@ -348,84 +386,70 @@ export default function ProfilesView({
                     <input type="date" value={newProjDate} onChange={(e) => setNewProjDate(e.target.value)} className="w-full p-2.5 border border-[#E5E5E5] focus:border-[#111111] text-xs outline-none bg-[#FBFBFB]" />
                   </div>
                 </div>
-
-                {/* Rich Syntax WYSIWYG Assist Bar */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[9px] uppercase font-bold tracking-wider text-[#8A8A8A]">Rich Workspace Configuration (Markdown Syntax Mode)</label>
                     <div className="flex gap-0.5 bg-neutral-100 p-0.5 border border-neutral-200 rounded">
-                      <button type="button" onClick={() => injectSyntax("heading")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Add Title Structure"><Heading className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("bold")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Highlight Text / Bold"><Type className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("list")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Insert Bullet Grid list"><List className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("table")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Create Comparison Data Matrix Table"><Columns className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("link")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Add Structural Hyperlink Asset"><Link className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("image")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Inject External Link Graphics / Image Media Assets"><Image className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => injectSyntax("rule")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors" title="Visual Segment Line Divider"><Minus className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("heading")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Heading className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("bold")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Type className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("list")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><List className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("table")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Columns className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("link")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Link className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("image")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Image className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => injectSyntax("rule")} className="p-1 hover:bg-white text-neutral-700 rounded transition-colors"><Minus className="w-3.5 h-3.5" /></button>
                     </div>
                   </div>
-                  <textarea id="projectRichEditor" required value={newProjDesc} onChange={(e) => setNewProjDesc(e.target.value)} className="w-full p-3 border border-[#E5E5E5] focus:border-[#111111] text-xs h-44 resize-none outline-none bg-[#FBFBFB] font-mono leading-relaxed" placeholder="Write or utilize the toolbar modules above to lay down clear workspace definitions, image URLs, and documentation maps..." />
+                  <textarea id="projectRichEditor" required value={newProjDesc} onChange={(e) => setNewProjDesc(e.target.value)} className="w-full p-3 border border-[#E5E5E5] focus:border-[#111111] text-xs h-44 resize-none outline-none bg-[#FBFBFB] font-mono leading-relaxed" placeholder="Write or utilize the toolbar modules above..." />
                 </div>
-
                 <div>
-                  <label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Development Matrix Elements / Tech Stack (Comma separated)</label>
+                  <label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Tech Stack (Comma separated)</label>
                   <input type="text" value={newProjTags} onChange={(e) => setNewProjTags(e.target.value)} className="w-full p-2.5 border border-[#E5E5E5] focus:border-[#111111] text-xs outline-none bg-[#FBFBFB]" placeholder="react, rust, webgl, tailwind" />
                 </div>
               </div>
-
-              {/* Right Side Adaptive Control Stack (Contains Collaborator Selector & Render Outputs) */}
               <div className="flex flex-col gap-4">
-                
-                {/* COLLABORATOR SELECTION MATRIX GRID */}
                 <div className="border border-neutral-200 rounded p-4 bg-neutral-50/60 flex flex-col h-44">
                   <div className="flex items-center gap-1.5 border-b border-neutral-200 pb-1.5 mb-2 flex-shrink-0">
                     <Users className="w-3.5 h-3.5 text-[#111111]" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#111111]">Attach Collaborators from the Clan</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#111111]">Attach Collaborators</span>
                   </div>
                   <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-                    {profiles
-                      .filter((p) => p.uid !== currentUserUid) 
-                      .map((member) => {
-                        const isChecked = selectedCollaborators.includes(member.uid);
-                        return (
-                          <label key={member.uid} className={`flex items-center justify-between p-2 rounded border transition-all cursor-pointer ${isChecked ? "bg-white border-[#111111] shadow-sm" : "bg-white/40 border-neutral-200 hover:bg-white"}`}>
-                            <div className="flex items-center gap-2">
-                              <img src={member.photoURL || `https://api.dicebear.com/7.x/identicon/svg?seed=${member.uid}`} alt="" className="w-5 h-5 border rounded-full object-cover" />
-                              <span className="text-xs font-medium text-neutral-800 truncate max-w-[140px]">{member.name}</span>
-                            </div>
-                            <input type="checkbox" checked={isChecked} onChange={() => handleToggleCollaborator(member.uid)} className="accent-neutral-900 rounded focus:ring-0 w-3.5 h-3.5" />
-                          </label>
-                        );
+                    {profiles.filter((p) => p.uid !== currentUserUid).map((member) => {
+                      const isChecked = selectedCollaborators.includes(member.uid);
+                      return (
+                        <label key={member.uid} className={`flex items-center justify-between p-2 rounded border transition-all cursor-pointer ${isChecked ? "bg-white border-[#111111] shadow-sm" : "bg-white/40 border-neutral-200 hover:bg-white"}`}>
+                          <div className="flex items-center gap-2">
+                            <img src={member.photoURL || `https://api.dicebear.com/7.x/identicon/svg?seed=${member.uid}`} alt="" className="w-5 h-5 border rounded-full object-cover" />
+                            <span className="text-xs font-medium text-neutral-800 truncate max-w-[140px]">{member.name}</span>
+                          </div>
+                          <input type="checkbox" checked={isChecked} onChange={() => handleToggleCollaborator(member.uid)} className="accent-neutral-900 rounded focus:ring-0 w-3.5 h-3.5" />
+                        </label>
+                      );
                     })}
                     {profiles.filter((p) => p.uid !== currentUserUid).length === 0 && (
-                      <p className="text-[11px] font-serif italic text-neutral-400 text-center pt-6">No alternative workspace nodes available.</p>
+                      <p className="text-[11px] font-serif italic text-neutral-400 text-center pt-6">No members available.</p>
                     )}
                   </div>
                 </div>
-
-                {/* Interactive Live Viewport Display Screen */}
                 <div className="border border-neutral-200 bg-white flex-1 flex flex-col rounded p-4 overflow-hidden min-h-[180px]">
                   {projectEditorTab === "edit" ? (
                     <div className="flex-1 flex flex-col justify-center items-center text-center text-neutral-400 p-4">
                       <FileText className="w-7 h-7 text-neutral-300 mb-1.5 stroke-1" />
                       <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">Workspace Editor Active</span>
-                      <p className="text-[11px] italic text-neutral-400 font-serif mt-0.5 max-w-xs">Click the live preview selector at any point to inspect output layouts.</p>
                     </div>
                   ) : (
                     <div className="flex-1 overflow-y-auto font-sans text-xs text-neutral-800 space-y-2 prose max-w-none">
-                      <h2 className="text-sm font-bold text-neutral-900 font-sans tracking-wide border-b border-neutral-200 pb-1 uppercase">{newProjTitle || "Untitled Workspace Core"}</h2>
+                      <h2 className="text-sm font-bold text-neutral-900 font-sans tracking-wide border-b border-neutral-200 pb-1 uppercase">{newProjTitle || "Untitled"}</h2>
                       <div className="text-[9px] text-neutral-500 font-medium">
-                        Team Attached: {currentUserProfile?.name || "Me"} 
+                        Team: {currentUserProfile?.name || "Me"}
                         {selectedCollaborators.map(uid => `, ${profiles.find(p => p.uid === uid)?.name || ""}`)}
                       </div>
                       <div className="whitespace-pre-wrap font-serif text-[11px] leading-relaxed text-neutral-700 bg-neutral-50/40 p-2 border border-dashed rounded">
-                        {newProjDesc || <span className="text-neutral-400 italic font-serif">Workspace description metrics empty.</span>}
+                        {newProjDesc || <span className="text-neutral-400 italic">Empty.</span>}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Action Commitment Grid Trigger Row */}
               <div className="lg:col-span-3 flex justify-end gap-3 pt-3 border-t border-neutral-100 flex-shrink-0">
                 <button type="button" onClick={() => setAddingProj(false)} className="px-5 py-2.5 border border-[#E5E5E5] text-xs font-bold uppercase tracking-widest hover:bg-neutral-50 rounded-[2px]">Discard</button>
                 <button type="submit" className="px-8 py-2.5 bg-[#111111] text-white hover:bg-neutral-800 text-xs font-bold uppercase tracking-widest rounded-[2px]">Deploy Workspace Core</button>
@@ -435,12 +459,11 @@ export default function ProfilesView({
         </div>
       )}
 
-      {/* Dynamic System Sub-Navigation Engine */}
       <div className="mb-10 flex flex-wrap gap-4 items-center justify-between border-b border-[#111111] pb-4">
         <div>
           <span className="block font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A8A8A] mb-2">PORTAL NETWORKS</span>
           <h2 className="text-3xl font-serif font-bold text-[#111111]">{viewMode === "clan" ? "The Clan" : "My Base Center"}</h2>
-          <p className="text-sm italic text-[#8A8A8A]">{viewMode === "clan" ? "Connecting every active node in our circle. View profiles, experience custom sites, or start text lines." : "Refine your system profiles, structural badges, projects, and active code sandboxes."}</p>
+          <p className="text-sm italic text-[#8A8A8A]">{viewMode === "clan" ? "Connecting every active node in our circle." : "Refine your profile, projects, and showcase."}</p>
         </div>
         <div className="flex items-center gap-3 font-sans">
           <button onClick={() => { setViewMode("clan"); setActiveSandbox(null); }} className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all rounded-[2px] ${viewMode === "clan" && !activeSandbox ? "bg-[#111111] text-white" : "border border-[#E5E5E5] text-[#111111] hover:border-[#111111]"}`}>The Clan</button>
@@ -448,7 +471,6 @@ export default function ProfilesView({
         </div>
       </div>
 
-      {/* OWNER ONLY EDITOR WINDOW */}
       {activeSandbox && viewMode === "my-profile" && (
         <div className="bg-white border border-[#111111] p-6 mb-12 animate-fade-in">
           <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4 mb-6">
@@ -464,39 +486,41 @@ export default function ProfilesView({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[550px]">
             <div className="flex flex-col gap-4 h-full">
               <div className="flex-1 flex flex-col font-mono text-xs">
-                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">Document Structure (HTML)</span>
+                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">HTML</span>
                 <textarea value={htmlCode} onChange={(e) => setHtmlCode(e.target.value)} className="w-full flex-1 p-3 bg-neutral-900 text-emerald-400 font-mono border border-neutral-800 rounded outline-none resize-none" />
               </div>
               <div className="flex-1 flex flex-col font-mono text-xs">
-                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">Style Sheets (CSS)</span>
+                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">CSS</span>
                 <textarea value={cssCode} onChange={(e) => setCssCode(e.target.value)} className="w-full flex-1 p-3 bg-neutral-900 text-blue-400 font-mono border border-neutral-800 rounded outline-none resize-none" />
               </div>
             </div>
             <div className="flex flex-col h-full border border-[#E5E5E5] rounded bg-white overflow-hidden shadow-inner">
               <div className="bg-neutral-100 border-b border-[#E5E5E5] px-4 py-2 flex items-center gap-2">
-                <div className="flex gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span><span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span></div>
-                <div className="bg-white border border-neutral-200 text-[10px] font-mono rounded px-3 py-0.5 text-neutral-500 flex-1 truncate">https://clan.portal/showcase/${activeSandbox.uid}</div>
+                <div className="flex gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span>
+                </div>
+                <div className="bg-white border border-neutral-200 text-[10px] font-mono rounded px-3 py-0.5 text-neutral-500 flex-1 truncate">showcase / {activeSandbox.name}</div>
               </div>
-              <iframe title="Sandbox App Render Console Window" srcDoc={getCombinedSrcDoc()} sandbox="allow-scripts" className="w-full flex-1 bg-white" />
+              <iframe title="Sandbox Preview" srcDoc={getCombinedSrcDoc()} sandbox="allow-scripts" className="w-full flex-1 bg-white" />
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEW: CLAN DIRECTORY CARDS GRID */}
       {viewMode === "clan" && (
         <>
           {loading ? (
             <div className="text-center font-sans text-xs uppercase tracking-widest py-12 text-[#8A8A8A]">Assembling network directory...</div>
           ) : profiles.length === 0 ? (
-            <div className="text-center font-serif py-12 text-[#8A8A8A] italic border border-dashed border-[#E5E5E5] bg-[#F9F9F9]">No active members indexed in database structure.</div>
+            <div className="text-center font-serif py-12 text-[#8A8A8A] italic border border-dashed border-[#E5E5E5] bg-[#F9F9F9]">No active members found.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {profiles.map((profile) => {
                 const userRole = roles[profile.uid] || "student";
                 const isMe = profile.uid === currentUserUid;
                 const canRemove = currentUserRole === "admin" && !isMe;
-
                 return (
                   <div key={profile.uid} className="border border-[#E5E5E5] bg-white p-6 hover:border-[#111111] transition-all duration-200 flex flex-col justify-between">
                     <div>
@@ -518,8 +542,17 @@ export default function ProfilesView({
                         {profile.socials?.linkedin && <a href={`https://linkedin.com/in/${profile.socials.linkedin}`} target="_blank" rel="noreferrer" className="text-[#8A8A8A] hover:text-[#111111]"><Linkedin className="w-4 h-4" /></a>}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => handleOpenShowcase(profile.uid, profile.name, false)} className="bg-white hover:bg-[#F9F9F9] text-[#111111] border border-[#E5E5E5] hover:border-[#111111] py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><Globe className="w-3.5 h-3.5" />Visit Website</button>
-                        {!isMe ? <button onClick={() => setChatTarget({ uid: profile.uid, name: profile.name })} className="bg-[#111111] text-white py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><MessageSquare className="w-3.5 h-3.5" />Chat 1:1</button> : <button onClick={() => setViewMode("my-profile")} className="border border-dashed border-[#111111] text-[#111111] bg-amber-50 hover:bg-amber-100 flex items-center justify-center py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all rounded-[2px]">Edit Space</button>}
+                        <button
+                          onClick={() => handleVisitWebsite(profile)}
+                          className="bg-white hover:bg-[#F9F9F9] text-[#111111] border border-[#E5E5E5] hover:border-[#111111] py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"
+                        >
+                          <Globe className="w-3.5 h-3.5" />Visit Website
+                        </button>
+                        {!isMe ? (
+                          <button onClick={() => setChatTarget({ uid: profile.uid, name: profile.name })} className="bg-[#111111] text-white py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><MessageSquare className="w-3.5 h-3.5" />Chat 1:1</button>
+                        ) : (
+                          <button onClick={() => setViewMode("my-profile")} className="border border-dashed border-[#111111] text-[#111111] bg-amber-50 hover:bg-amber-100 flex items-center justify-center py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all rounded-[2px]">Edit Space</button>
+                        )}
                       </div>
                       {canRemove && <button onClick={() => handleRemoveProfile(profile.uid, profile.email)} disabled={removingUid === profile.uid} className="w-full mt-2 border border-red-600 text-red-600 hover:bg-red-600 hover:text-white py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><UserX className="w-3.5 h-3.5" />Eject Node</button>}
                     </div>
@@ -531,29 +564,28 @@ export default function ProfilesView({
         </>
       )}
 
-      {/* VIEW: MY PERSONAL BASE CENTRE PANEL VIEW */}
       {viewMode === "my-profile" && (
         <div className="space-y-8 animate-fade-in">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 bg-[#F9F9F9] p-8 border border-[#E5E5E5]">
             <div className="lg:col-span-2">
               <div className="flex justify-between items-center border-b border-[#E5E5E5] pb-2 mb-6">
                 <h3 className="text-xl font-serif font-bold text-[#111111]">Configure Identity Node</h3>
-                <button onClick={() => handleOpenShowcase(currentUserUid, currentUserProfile?.name || "My Space", true)} className="bg-amber-500 text-neutral-900 text-xs font-sans font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5 hover:bg-amber-600 transition-all rounded-[2px]"><Code className="w-3.5 h-3.5" /> Customize HTML/CSS Space</button>
+                <button onClick={() => handleOpenShowcase(currentUserUid, currentUserProfile?.name || "My Space", true, currentUserProfile || undefined)} className="bg-amber-500 text-neutral-900 text-xs font-sans font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5 hover:bg-amber-600 transition-all rounded-[2px]"><Code className="w-3.5 h-3.5" /> Customize HTML/CSS Space</button>
               </div>
               <form onSubmit={handleSaveProfile} className="space-y-4 font-sans">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Full Identity Name</label><input type="text" required value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Custom Profile Image Address (URL)</label><input type="text" value={editPhotoURL} onChange={(e) => setEditPhotoURL(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Full Name</label><input type="text" required value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Profile Image URL</label><input type="text" value={editPhotoURL} onChange={(e) => setEditPhotoURL(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Structural Serial/Roll ID</label><input type="text" value={editRoll} onChange={(e) => setEditRoll(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Batch Matrix Tag</label><input type="text" value={editBatch} onChange={(e) => setEditBatch(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Roll Number</label><input type="text" value={editRoll} onChange={(e) => setEditRoll(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Batch Year</label><input type="text" value={editBatch} onChange={(e) => setEditBatch(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
                 </div>
-                <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Core Systems Specializations (Comma separated)</label><input type="text" value={editSkills} onChange={(e) => setEditSkills(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Skills (Comma separated)</label><input type="text" value={editSkills} onChange={(e) => setEditSkills(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">GitHub ID</label><input type="text" value={editGithub} onChange={(e) => setEditGithub(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">LinkedIn Handle</label><input type="text" value={editLinkedin} onChange={(e) => setEditLinkedin(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
-                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">External Address</label><input type="text" value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">GitHub</label><input type="text" value={editGithub} onChange={(e) => setEditGithub(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">LinkedIn</label><input type="text" value={editLinkedin} onChange={(e) => setEditLinkedin(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
+                  <div><label className="block text-[9px] uppercase font-bold mb-1 tracking-wider text-[#8A8A8A]">Website</label><input type="text" value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} className="w-full p-2 border border-[#E5E5E5] bg-white text-xs outline-none" /></div>
                 </div>
                 <button type="submit" className="w-full bg-[#111111] text-white hover:bg-neutral-800 py-3 text-xs font-sans font-bold uppercase tracking-widest transition-all rounded-[2px]">Commit Changes</button>
               </form>
@@ -561,10 +593,12 @@ export default function ProfilesView({
             <div className="flex flex-col border-t lg:border-t-0 lg:border-l border-[#E5E5E5] pt-6 lg:pt-0 lg:pl-8">
               <div className="flex justify-between items-baseline mb-6">
                 <h3 className="text-xl font-serif font-bold text-[#111111]">Active Projects</h3>
-                <button onClick={() => setAddingProj(true)} className="border border-[#111111] bg-white px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider hover:bg-neutral-100 transition-all flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add Workspace Project</button>
+                <button onClick={() => setAddingProj(true)} className="border border-[#111111] bg-white px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider hover:bg-neutral-100 transition-all flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add Project</button>
               </div>
               <div className="flex-1 overflow-y-auto max-h-[280px] space-y-2 pr-1 font-sans">
-                {myProjects.length === 0 ? <div className="text-xs text-[#8A8A8A] font-serif italic text-center py-8">No listed workspaces found.</div> : myProjects.map((proj) => (
+                {myProjects.length === 0 ? (
+                  <div className="text-xs text-[#8A8A8A] font-serif italic text-center py-8">No projects yet.</div>
+                ) : myProjects.map((proj) => (
                   <div key={proj.id} className="flex items-center justify-between p-3.5 border border-[#E5E5E5] bg-white text-xs animate-fade-in">
                     <div>
                       <div className="font-bold text-[#111111] uppercase tracking-wider">{proj.title}</div>
@@ -579,7 +613,6 @@ export default function ProfilesView({
         </div>
       )}
 
-      {/* Dynamic Messenger Component Portal Interface */}
       {chatTarget && currentUserProfile && <ChatModal currentUid={currentUserUid} currentName={currentUserProfile.name} targetUid={chatTarget.uid} targetName={chatTarget.name} onClose={() => setChatTarget(null)} />}
     </div>
   );

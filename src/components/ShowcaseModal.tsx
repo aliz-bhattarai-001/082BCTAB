@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Upload, FileCode, Check, AlertCircle, Edit, Play } from "lucide-react";
+import { X, Upload, Check, AlertCircle, Edit, Play, ExternalLink } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Showcase } from "../types";
@@ -34,7 +34,6 @@ export default function ShowcaseModal({ uid, studentName, isOwner, onClose }: Sh
           setHtml(data.html || "");
           setCss(data.css || "");
         } else {
-          // Default template for new showcase
           setHtml(`<!-- Custom Showcase for ${studentName} -->
 <div class="card">
   <h1>Welcome to my space</h1>
@@ -96,7 +95,6 @@ button:hover {
       setUploadError("");
       setSuccessMsg("");
 
-      // Validate sizes
       const htmlSize = new Blob([html]).size;
       const cssSize = new Blob([css]).size;
       if (htmlSize > 500 * 1024 || cssSize > 500 * 1024) {
@@ -130,7 +128,6 @@ button:hover {
       setUploadError("Please upload a valid .css file.");
       return;
     }
-
     if (file.size > 500 * 1024) {
       setUploadError("File exceeds 500KB limit.");
       return;
@@ -149,14 +146,11 @@ button:hover {
     reader.readAsText(file);
   };
 
-  // Compile HTML + CSS into a srcDoc for sandboxed iframe rendering
   const srcDoc = `
     <!DOCTYPE html>
     <html>
       <head>
-        <style>
-          ${css}
-        </style>
+        <style>${css}</style>
       </head>
       <body>
         ${html}
@@ -167,7 +161,7 @@ button:hover {
   return (
     <div className="fixed inset-0 bg-[#111111]/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
       <div className="bg-[#FFFFFF] w-full max-w-5xl h-[85vh] border border-[#111111] flex flex-col relative animate-fade-in font-serif text-[#111111]">
-        
+
         {/* Header */}
         <div className="border-b border-[#E5E5E5] bg-[#FFFFFF] p-5 flex items-center justify-between">
           <div>
@@ -181,12 +175,23 @@ button:hover {
               Rendered inside a secure, sandboxed container.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 border border-[#E5E5E5] hover:border-[#111111] bg-white transition-colors"
-          >
-            <X className="w-5 h-5 text-[#111111]" />
-          </button>
+          <div className="flex items-center gap-3">
+            
+              href={`/showcase/${uid}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-sans font-bold uppercase tracking-widest border border-[#E5E5E5] hover:border-[#111111] text-[#8A8A8A] hover:text-[#111111] transition-colors rounded-[1px]"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Open Page
+            </a>
+            <button
+              onClick={onClose}
+              className="p-2 border border-[#E5E5E5] hover:border-[#111111] bg-white transition-colors"
+            >
+              <X className="w-5 h-5 text-[#111111]" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -234,13 +239,13 @@ button:hover {
               <iframe
                 title="Student Showcase"
                 srcDoc={srcDoc}
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-top-navigation allow-same-origin"
                 className="w-full h-full border-0 bg-[#FFFFFF]"
               />
             </div>
           ) : (
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-              {/* Code Editors */}
+              {/* HTML Editor */}
               <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-[#E5E5E5] overflow-hidden">
                 <div className="p-3 bg-[#F9F9F9] border-b border-[#E5E5E5] flex items-center justify-between font-sans">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#8A8A8A]">HTML Source</span>
@@ -264,6 +269,7 @@ button:hover {
                 />
               </div>
 
+              {/* CSS Editor */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="p-3 bg-[#F9F9F9] border-b border-[#E5E5E5] flex items-center justify-between font-sans">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#8A8A8A]">CSS Styles</span>
@@ -290,7 +296,7 @@ button:hover {
           )}
         </div>
 
-        {/* Footer info/status bar */}
+        {/* Footer */}
         {(uploadError || successMsg || tab === "edit") && (
           <div className="border-t border-[#E5E5E5] p-4 flex flex-wrap items-center justify-between bg-[#FDFDFD] gap-2">
             <div className="flex items-center gap-2">
