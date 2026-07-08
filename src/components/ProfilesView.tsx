@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User, Tag, Github, Linkedin, Globe, MessageSquare, Plus, Trash2, Code, UserX, Settings, Layout, Eye, Save, X, Heading, Type, Columns, List, Minus, Link, Image, FileText, Users } from "lucide-react";
+import { User, Tag, Github, Linkedin, Globe, MessageSquare, Plus, Trash2, Code, UserX, Settings, Layout, Eye, Save, X, Heading, Type, Columns, List, Minus, Link, Image, FileText, Users, Search, ArrowDownAZ } from "lucide-react";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { UserProfile, UserRole, Project } from "../types";
@@ -27,6 +27,9 @@ export default function ProfilesView({
   const [removingUid, setRemovingUid] = useState<string | null>(null);
 
   const [viewMode, setViewMode] = useState<"clan" | "my-profile">("clan");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortAlpha, setSortAlpha] = useState(false);
 
   const [editName, setEditName] = useState("");
   const [editRoll, setEditRoll] = useState("");
@@ -341,6 +344,10 @@ const handleVisitWebsite = (profile: UserProfile) => {
     return `<!DOCTYPE html><html><head><style>${cssCode}</style></head><body>${htmlCode}</body></html>`;
   };
 
+  const displayedProfiles = profiles
+    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => (sortAlpha ? a.name.localeCompare(b.name) : 0));
+
   return (
     <div className="max-w-7xl mx-auto py-12 px-6 font-serif text-[#111111] animate-fade-in">
 
@@ -459,7 +466,7 @@ const handleVisitWebsite = (profile: UserProfile) => {
         </div>
       )}
 
-      <div className="mb-10 flex flex-wrap gap-4 items-center justify-between border-b border-[#111111] pb-4">
+      <div className="mb-6 flex flex-wrap gap-4 items-center justify-between border-b border-[#111111] pb-4">
         <div>
           <span className="block font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A8A8A] mb-2">PORTAL NETWORKS</span>
           <h2 className="text-3xl font-serif font-bold text-[#111111]">{viewMode === "clan" ? "The Clan" : "My Base Center"}</h2>
@@ -471,41 +478,24 @@ const handleVisitWebsite = (profile: UserProfile) => {
         </div>
       </div>
 
-      {activeSandbox && viewMode === "my-profile" && (
-        <div className="bg-white border border-[#111111] p-6 mb-12 animate-fade-in">
-          <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4 mb-6">
-            <div>
-              <span className="font-sans text-[10px] font-bold tracking-widest text-[#8A8A8A] uppercase">LIVE SHOWCASE SANDBOX</span>
-              <h3 className="text-2xl font-bold font-serif">Configure Your Web Domain Layout</h3>
-            </div>
-            <div className="flex items-center gap-3 font-sans">
-              <button onClick={handleSaveShowcase} disabled={isSavingSandbox} className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-[2px] disabled:opacity-50"><Save className="w-3.5 h-3.5" />{isSavingSandbox ? "Deploying..." : "Deploy Live Space"}</button>
-              <button onClick={() => setActiveSandbox(null)} className="border border-[#111111] hover:bg-neutral-100 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-[2px]">Close Editor</button>
-            </div>
+      {viewMode === "clan" && (
+        <div className="mb-8 flex flex-wrap gap-3 items-center font-sans">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="w-3.5 h-3.5 text-[#8A8A8A] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search nodes by name..."
+              className="w-full pl-9 pr-3 py-2 border border-[#E5E5E5] focus:border-[#111111] text-xs outline-none bg-white"
+            />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[550px]">
-            <div className="flex flex-col gap-4 h-full">
-              <div className="flex-1 flex flex-col font-mono text-xs">
-                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">HTML</span>
-                <textarea value={htmlCode} onChange={(e) => setHtmlCode(e.target.value)} className="w-full flex-1 p-3 bg-neutral-900 text-emerald-400 font-mono border border-neutral-800 rounded outline-none resize-none" />
-              </div>
-              <div className="flex-1 flex flex-col font-mono text-xs">
-                <span className="font-sans text-[10px] text-[#8A8A8A] font-bold mb-1 uppercase tracking-wide">CSS</span>
-                <textarea value={cssCode} onChange={(e) => setCssCode(e.target.value)} className="w-full flex-1 p-3 bg-neutral-900 text-blue-400 font-mono border border-neutral-800 rounded outline-none resize-none" />
-              </div>
-            </div>
-            <div className="flex flex-col h-full border border-[#E5E5E5] rounded bg-white overflow-hidden shadow-inner">
-              <div className="bg-neutral-100 border-b border-[#E5E5E5] px-4 py-2 flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span>
-                </div>
-                <div className="bg-white border border-neutral-200 text-[10px] font-mono rounded px-3 py-0.5 text-neutral-500 flex-1 truncate">showcase / {activeSandbox.name}</div>
-              </div>
-              <iframe title="Sandbox Preview" srcDoc={getCombinedSrcDoc()} sandbox="allow-scripts" className="w-full flex-1 bg-white" />
-            </div>
-          </div>
+          <button
+            onClick={() => setSortAlpha((prev) => !prev)}
+            className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border rounded-[2px] flex items-center gap-1.5 transition-all ${sortAlpha ? "bg-[#111111] text-white border-[#111111]" : "border-[#E5E5E5] text-[#111111] hover:border-[#111111]"}`}
+          >
+            <ArrowDownAZ className="w-3.5 h-3.5" /> {sortAlpha ? "Sorted A–Z" : "Sort A–Z"}
+          </button>
         </div>
       )}
 
@@ -515,9 +505,11 @@ const handleVisitWebsite = (profile: UserProfile) => {
             <div className="text-center font-sans text-xs uppercase tracking-widest py-12 text-[#8A8A8A]">Assembling network directory...</div>
           ) : profiles.length === 0 ? (
             <div className="text-center font-serif py-12 text-[#8A8A8A] italic border border-dashed border-[#E5E5E5] bg-[#F9F9F9]">No active members found.</div>
+          ) : displayedProfiles.length === 0 ? (
+            <div className="text-center font-serif py-12 text-[#8A8A8A] italic border border-dashed border-[#E5E5E5] bg-[#F9F9F9]">No nodes match "{searchQuery}".</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {profiles.map((profile) => {
+              {displayedProfiles.map((profile) => {
                 const userRole = roles[profile.uid] || "student";
                 const isMe = profile.uid === currentUserUid;
                 const canRemove = currentUserRole === "admin" && !isMe;

@@ -262,9 +262,9 @@ export default function App() {
       </main>
       <footer className="border-t border-[#E5E5E5] bg-[#FFFFFF] py-6 text-center font-serif text-xs text-[#8A8A8A]">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>&copy; 2026 Pulchowk Campus BCT Department. All Rights Reserved.</div>
+          <div>&copy; 2026, Pulchowk Campus BCT AB. All Rights Reserved.</div>
           <div className="flex gap-4">
-            <span className="font-bold text-[#111111]">Secured with Firestore Security Rules</span>
+            <span className="font-bold text-[#111111]">Maintained by Apil Bhandari</span>
             <span>•</span>
             <span>Local Time: {new Date().toLocaleDateString()}</span>
           </div>
