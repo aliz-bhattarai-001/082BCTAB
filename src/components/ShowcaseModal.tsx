@@ -176,7 +176,7 @@ button:hover {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            
+            <a
               href={`/showcase/${uid}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -199,11 +199,10 @@ button:hover {
           <div className="flex gap-2">
             <button
               onClick={() => setTab("preview")}
-              className={`px-4 py-1.5 text-[10px] border font-sans font-bold uppercase tracking-widest transition-all rounded-[1px] ${
-                tab === "preview"
-                  ? "bg-[#111111] text-[#F4C430] border-[#111111]"
-                  : "bg-white text-[#111111] border-[#E5E5E5] hover:border-[#111111]"
-              }`}
+              className={`px-4 py-1.5 text-[10px] border font-sans font-bold uppercase tracking-widest transition-all rounded-[1px] ${tab === "preview"
+                ? "bg-[#111111] text-[#F4C430] border-[#111111]"
+                : "bg-white text-[#111111] border-[#E5E5E5] hover:border-[#111111]"
+                }`}
             >
               <Play className="w-3 h-3 inline-block mr-1.5" />
               Live Preview
@@ -211,11 +210,10 @@ button:hover {
             {isOwner && (
               <button
                 onClick={() => setTab("edit")}
-                className={`px-4 py-1.5 text-[10px] border font-sans font-bold uppercase tracking-widest transition-all rounded-[1px] ${
-                  tab === "edit"
-                    ? "bg-[#111111] text-[#F4C430] border-[#111111]"
-                    : "bg-white text-[#111111] border-[#E5E5E5] hover:border-[#111111]"
-                }`}
+                className={`px-4 py-1.5 text-[10px] border font-sans font-bold uppercase tracking-widest transition-all rounded-[1px] ${tab === "edit"
+                  ? "bg-[#111111] text-[#F4C430] border-[#111111]"
+                  : "bg-white text-[#111111] border-[#E5E5E5] hover:border-[#111111]"
+                  }`}
               >
                 <Edit className="w-3 h-3 inline-block mr-1.5" />
                 Edit / Upload

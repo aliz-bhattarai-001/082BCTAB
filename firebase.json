@@ -17,5 +17,15 @@
       "port": 4000
     },
     "singleProjectMode": true
+  },
+  
+  "hosting": {
+    "public": "dist",
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

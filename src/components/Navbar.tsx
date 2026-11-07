@@ -1,18 +1,15 @@
 import React from "react";
 import { LogOut } from "lucide-react";
 import { UserProfile, UserRole } from "../types";
+import { Link, NavLink } from "react-router-dom";
 
 interface NavbarProps {
-  currentTab: string;
-  onNavigate: (tab: string) => void;
   userProfile: UserProfile | null;
   userRole: UserRole;
   onSignOut: () => void;
 }
 
 export default function Navbar({
-  currentTab,
-  onNavigate,
   userProfile,
   userRole,
   onSignOut,
@@ -50,47 +47,46 @@ export default function Navbar({
   return (
     <header className="border-b border-[#111111] bg-[#FFFFFF] sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        
+
         {/* Brand / Logo */}
-        <div
-          onClick={() => onNavigate("home")}
+        <Link to="/"
           className="cursor-pointer flex items-center group select-none"
         >
           <div className="font-sans font-black text-2xl tracking-tighter uppercase bg-[#111111] text-white px-3 py-1 shadow-[3px_3px_0px_0px_rgba(244,196,48,1)] transition-transform group-hover:-translate-y-0.5">
             BCT<span className="text-[#F4C430]">AB</span>
           </div>
-        </div>
+        </Link>
 
         {/* Navigation Links */}
         <nav className="flex flex-wrap items-center gap-1">
-          {navItems.map((item) => {
-            const isActive = currentTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`text-[11px] font-sans font-bold uppercase tracking-widest transition-all py-1.5 px-3 border border-transparent ${
-                  isActive
-                    ? "bg-[#F4C430] text-[#111111] border-[#111111] shadow-[2px_2px_0px_0px_rgba(17,17,17,1)] font-black"
-                    : "text-[#8A8A8A] hover:text-[#111111] hover:bg-neutral-50"
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.id === "home" ? "/" : `/${item.id}`}
+              end={item.id === "home"}
+              className={({ isActive }) =>
+                `text-[11px] font-sans font-bold uppercase tracking-widest transition-all py-1.5 px-3 border border-transparent ${isActive
+                  ? "bg-[#F4C430] text-[#111111] border-[#111111] shadow-[2px_2px_0px_0px_rgba(17,17,17,1)] font-black"
+                  : "text-[#8A8A8A] hover:text-[#111111] hover:bg-neutral-50"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
 
           {showAdmin && (
-            <button
-              onClick={() => onNavigate("admin")}
-              className={`text-[11px] font-sans font-bold uppercase tracking-widest transition-all py-1.5 px-3 border border-transparent ${
-                currentTab === "admin"
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `text-[11px] font-sans font-bold uppercase tracking-widest transition-all py-1.5 px-3 border border-transparent ${isActive
                   ? "bg-red-600 text-white border-[#111111] shadow-[2px_2px_0px_0px_rgba(17,17,17,1)] font-black"
                   : "text-red-500/80 hover:text-red-600 hover:bg-red-50"
-              }`}
+                }`
+              }
             >
               Admin
-            </button>
+            </NavLink>
           )}
         </nav>
 

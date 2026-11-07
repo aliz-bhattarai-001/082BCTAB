@@ -30,7 +30,6 @@ export interface ExceptionEmail {
   addedBy: string;
   addedAt: any;
 }
-
 export interface Project {
   id: string;
   ownerUid: string;
@@ -39,12 +38,18 @@ export interface Project {
   title: string;
   description: string;
   tags: string[];
-  date: string; // ISO date or simple string
+  date: string;
   stars: number;
-  starredBy: string[]; // List of UIDs who starred it
+  starredBy: string[];
   createdAt: any;
-}
 
+  // Optional project details : added to remove missing properties error.
+  githubUrl?: string;
+  liveUrl?: string;
+  keyFeatures?: string[];
+  displayMode?: "standard" | "deep-dive";
+  collaborators?: string[];
+}
 export interface ClassEvent {
   id: string;
   title: string;

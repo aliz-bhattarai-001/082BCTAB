@@ -3,7 +3,8 @@ import { User, Tag, Github, Linkedin, Globe, MessageSquare, Plus, Trash2, Code, 
 import { collection, getDocs, doc, setDoc, deleteDoc, query, where, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { UserProfile, UserRole, Project } from "../types";
-import ChatModal from "./ChatModal";
+// import ChatModal from "./ChatModal";
+import { useNavigate } from "react-router-dom";
 
 interface ProfilesViewProps {
   currentUserUid: string;
@@ -56,7 +57,8 @@ export default function ProfilesView({
   const [cssCode, setCssCode] = useState<string>("");
   const [isSavingSandbox, setIsSavingSandbox] = useState(false);
 
-  const [chatTarget, setChatTarget] = useState<{ uid: string; name: string } | null>(null);
+  // const [chatTarget, setChatTarget] = useState<{ uid: string; name: string } | null>(null);
+  const navigate = useNavigate();
 
   const getDefaultHtml = (name: string, roll: string, batch: string) => `
 <div class="hero">
@@ -237,9 +239,14 @@ h1 {
     }
   };
 
-const handleVisitWebsite = (profile: UserProfile) => {
-  window.open(`/${slugify(profile.name)}`, "_blank");
-};
+  const handleVisitWebsite = (profile: UserProfile) => {
+    window.open(
+      `/u/${slugify(profile.name)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
 
   const handleSaveShowcase = async () => {
     if (!activeSandbox) return;
@@ -541,7 +548,9 @@ const handleVisitWebsite = (profile: UserProfile) => {
                           <Globe className="w-3.5 h-3.5" />Visit Website
                         </button>
                         {!isMe ? (
-                          <button onClick={() => setChatTarget({ uid: profile.uid, name: profile.name })} className="bg-[#111111] text-white py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><MessageSquare className="w-3.5 h-3.5" />Chat 1:1</button>
+                          <button onClick={() => navigate(`/chat/${profile.uid}`, {
+                            state: { targetName: profile.name }
+                          })} className="bg-[#111111] text-white py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1 rounded-[2px]"><MessageSquare className="w-3.5 h-3.5" />Chat 1:1</button>
                         ) : (
                           <button onClick={() => setViewMode("my-profile")} className="border border-dashed border-[#111111] text-[#111111] bg-amber-50 hover:bg-amber-100 flex items-center justify-center py-2 text-[9px] font-sans font-bold uppercase tracking-widest transition-all rounded-[2px]">Edit Space</button>
                         )}
@@ -605,7 +614,7 @@ const handleVisitWebsite = (profile: UserProfile) => {
         </div>
       )}
 
-      {chatTarget && currentUserProfile && <ChatModal currentUid={currentUserUid} currentName={currentUserProfile.name} targetUid={chatTarget.uid} targetName={chatTarget.name} onClose={() => setChatTarget(null)} />}
+      {/* {chatTarget && currentUserProfile && <ChatModal currentUid={currentUserUid} currentName={currentUserProfile.name} targetUid={chatTarget.uid} targetName={chatTarget.name} onClose={() => setChatTarget(null)} />} */}
     </div>
   );
 }
